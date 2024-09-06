@@ -21,7 +21,37 @@ env-var:
 help:
 	@grep -E '^[a-zA-Z0-9 -]+:.*#'  Makefile | sort | while read -r l; do printf "\033[1;32m$$(echo $$l | cut -f 1 -d':')\033[00m:$$(echo $$l | cut -f 2- -d'#')\n"; done
 
+# ------ Crawlers --------
 
+local-build-1: # Build lambda crawler on local
+	docker compose -f docker-compose.yml build crawler 
+
+local-deploy-1: # Deploy lambda crawler custom docker image on local.
+	docker network create llm-twin-course_local
+	docker run -d \
+		--name mongo1 \
+		-p 30001:30001 \
+		--network llm-twin-course_local \
+		-v ./data/mongo-1:/data/db \
+		mongo:5 \
+		--bind_ip_all --port 30001
+	docker run \
+		--name crawler1 \
+		-p 9000:8080 \
+		-e MONGO_DATABASE_HOST=mongodb://mongo1:30001 \
+		--network llm-twin-course_local \
+		--platform linux/amd64 \
+		llm-twin-crawler:latest
+	
+local-clean-1:
+	docker stop mongo1 crawler 1 || true
+	docker rm mongo1 crawler1 || true
+	docker network rm llm-twin-course_local
+
+
+local-test-1:
+	curl -X POST "http://localhost:9000/2015-03-31/functions/function/invocations" \
+	  	-d '{"user": "Paul Iuztin", "link": "https://github.com/decodingml/llm-twin-course"}'	
 # ------  Infrastructure ------ 
 
 push: # Build & push image to docker ECR (e.g make push IMAGE_TAG=latest)
