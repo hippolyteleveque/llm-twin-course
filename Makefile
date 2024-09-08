@@ -3,7 +3,7 @@ include .env
 $(eval export $(shell sed -ne 's/ *#.*$$//; /./ s/=.*$$// p' .env))
 
 AWS_CURRENT_REGION_ID := $(shell aws configure get region)
-AWS_CURRENT_ACCOUNT_ID := $(shell aws sts get-caller-identity --query "Account" --output text)
+AWS_CURRENT_ACCOUNT_ID := $(shell aws sts get-caller-identity --query "Account" --output text --profile perso)
 
 PYTHONPATH := $(shell pwd)
 
@@ -56,10 +56,11 @@ local-test-1:
 
 push: # Build & push image to docker ECR (e.g make push IMAGE_TAG=latest)
 	echo "Logging into AWS ECR..."
-	aws ecr get-login-password --region $(AWS_CURRENT_REGION_ID) | docker login --username AWS --password-stdin $(AWS_CURRENT_ACCOUNT_ID).dkr.ecr.$(AWS_CURRENT_REGION_ID).amazonaws.com
+	aws ecr get-login-password --region $(AWS_CURRENT_REGION_ID) --profile perso | docker login --username AWS --password-stdin $(AWS_CURRENT_ACCOUNT_ID).dkr.ecr.$(AWS_CURRENT_REGION_ID).amazonaws.com
 	echo "Build & Push Docker image..."
-	docker buildx build --platform linux/amd64 -t $(AWS_CURRENT_ACCOUNT_ID).dkr.ecr.$(AWS_CURRENT_REGION_ID).amazonaws.com/crawler:$(IMAGE_TAG) .
-	echo "Push completed successfully."
+	docker buildx build --platform linux/amd64 -t $(AWS_CURRENT_ACCOUNT_ID).dkr.ecr.$(AWS_CURRENT_REGION_ID).amazonaws.com/crawler:$(IMAGE_TAG) -f .docker/Dockerfile.crawlers .
+	docker push $(AWS_CURRENT_ACCOUNT_ID).dkr.ecr.$(AWS_CURRENT_REGION_ID).amazonaws.com/crawler:$(IMAGE_TAG)
+	echo "Image pushed"
 
 local-start: # Buil and start local infrastructure.
 	docker compose -f docker-compose.yml up --build -d
