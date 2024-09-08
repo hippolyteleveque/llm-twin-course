@@ -1,9 +1,11 @@
+import os
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
     # MongoDB configs
-    MONGO_DATABASE_HOST: str = (
+    MONGO_DATABASE_HOST: str = os.getenv(
+        "MONGO_DATABASE_HOST",
         "mongodb://mongo1:30001,mongo2:30002,mongo3:30003/?replicaSet=my-replica-set"
     )
     MONGO_DATABASE_NAME: str = "scrabble"
